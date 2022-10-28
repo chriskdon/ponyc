@@ -15,9 +15,24 @@
 #include "ponyassert.h"
 #include <string.h>
 
+#include <lld/Common/Driver.h>
+
 #ifdef PLATFORM_IS_POSIX_BASED
 #  include <unistd.h>
 #endif
+
+class CaptureOStream : public llvm::raw_ostream {
+public:
+  std::string Data;
+
+  CaptureOStream() : raw_ostream(/*unbuffered=*/true), Data() {}
+
+  void write_impl(const char *Ptr, size_t Size) override {
+    Data.append(Ptr, Size);
+  }
+
+  uint64_t current_pos() const override { return Data.size(); }
+};
 
 static LLVMValueRef create_main(compile_t* c, reach_type_t* t,
   LLVMValueRef ctx)
