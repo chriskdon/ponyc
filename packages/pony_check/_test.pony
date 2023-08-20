@@ -85,6 +85,17 @@ actor \nodoc\ Main is TestList
     test(_UTF32CodePointStringTest)
 
 
+primitive \nodoc\ _TestPropertyParams
+  fun apply(async: Bool = false): PropertyParams => 
+    """
+    Increase the test timeout from the default 60 seconds
+    to 5 minutes to account for very slow execution environments 
+    (e.g. qemu on a very weak CI machine)
+    """
+    PropertyParams.create(where timeout' = _TestPropertyParams.timeout(), async' = async)
+
+  fun timeout(): U64 => 360_000_000_000
+
 class \nodoc\ iso _StringifyTest is UnitTest
   fun name(): String => "stringify"
 
@@ -105,6 +116,8 @@ class \nodoc\ iso _SuccessfulProperty is Property1[U8]
   """
   this just tests that a property is compatible with PonyTest
   """
+  fun params(): PropertyParams => _TestPropertyParams()
+
   fun name(): String => "as_unit_test/successful/property"
 
   fun gen(): Generator[U8] => Generators.u8(0, 10)
@@ -130,6 +143,9 @@ class \nodoc\ iso _SuccessfulPropertyTest is UnitTest
     runner.run()
 
 class \nodoc\ iso _FailingProperty is Property1[U8]
+
+  fun params(): PropertyParams => _TestPropertyParams()
+
   fun name(): String => "as_unit_test/failing/property"
 
   fun gen(): Generator[U8] => Generators.u8(0, 10)
@@ -155,6 +171,9 @@ class \nodoc\ iso _FailingPropertyTest is UnitTest
     runner.run()
 
 class \nodoc\ iso _ErroringProperty is Property1[U8]
+  
+  fun params(): PropertyParams => _TestPropertyParams()
+
   fun name(): String => "as_unit_test/erroring/property"
 
   fun gen(): Generator[U8] => Generators.u8(0, 1)
@@ -183,6 +202,9 @@ class \nodoc\ iso _ErroringPropertyTest is UnitTest
 
 
 class \nodoc\ iso _SuccessfulProperty2 is Property2[U8, U8]
+
+  fun params(): PropertyParams => _TestPropertyParams()
+
   fun name(): String => "as_unit_test/successful2/property"
   fun gen1(): Generator[U8] => Generators.u8(0, 1)
   fun gen2(): Generator[U8] => Generators.u8(2, 3)
@@ -208,6 +230,9 @@ class \nodoc\ iso _SuccessfulProperty2Test is UnitTest
     runner.run()
 
 class \nodoc\ iso _SuccessfulProperty3 is Property3[U8, U8, U8]
+
+  fun params(): PropertyParams => _TestPropertyParams()
+
   fun name(): String => "as_unit_test/successful3/property"
   fun gen1(): Generator[U8] => Generators.u8(0, 1)
   fun gen2(): Generator[U8] => Generators.u8(2, 3)
@@ -237,7 +262,11 @@ class \nodoc\ iso _SuccessfulProperty3Test is UnitTest
     runner.run()
 
 class \nodoc\ iso _SuccessfulProperty4 is Property4[U8, U8, U8, U8]
+
+  fun params(): PropertyParams => _TestPropertyParams()
+
   fun name(): String => "as_unit_test/successful4/property"
+
   fun gen1(): Generator[U8] => Generators.u8(0, 1)
   fun gen2(): Generator[U8] => Generators.u8(2, 3)
   fun gen3(): Generator[U8] => Generators.u8(4, 5)
@@ -292,7 +321,7 @@ class \nodoc\ iso _RunnerAsyncMultiCompleteSucceedTest is UnitTest
 
   fun apply(h: TestHelper) =>
     _Async.run_async_test(
-      h,
+        h,
       {(ph) =>
         ph.complete(true)
         ph.complete(false)
@@ -825,6 +854,9 @@ class \nodoc\ iso _UTF32CodePointStringTest is UnitTest
     end
 
 class \nodoc\ iso _SuccessfulIntProperty is IntProperty
+
+  fun params(): PropertyParams => _TestPropertyParams()
+
   fun name(): String  => "property/int/property"
 
   fun ref int_property[T: (Int & Integer[T] val)](x: T, h: PropertyHelper) =>
@@ -849,6 +881,9 @@ class \nodoc\ iso _SuccessfulIntPropertyTest is UnitTest
     runner.run()
 
 class \nodoc\ iso _SuccessfulIntPairProperty is IntPairProperty
+
+  fun params(): PropertyParams => _TestPropertyParams()
+
   fun name(): String => "property/intpair/property"
 
   fun int_property[T: (Int & Integer[T] val)](x: T, y: T, h: PropertyHelper) =>
@@ -872,6 +907,9 @@ class \nodoc\ iso _SuccessfulIntPairPropertyTest is UnitTest
     runner.run()
 
 class \nodoc\ iso _InfiniteShrinkProperty is Property1[String]
+
+  fun params(): PropertyParams => _TestPropertyParams()
+
   fun name(): String => "property_runner/inifinite_shrink/property"
 
   fun gen(): Generator[String] =>
@@ -911,6 +949,9 @@ class \nodoc\ iso _RunnerInfiniteShrinkTest is UnitTest
     runner.run()
 
 class \nodoc\ iso _ErroringGeneratorProperty is Property1[String]
+
+  fun params(): PropertyParams => _TestPropertyParams()
+
   fun name(): String => "property_runner/erroring_generator/property"
 
   fun gen(): Generator[String] =>
@@ -941,12 +982,15 @@ class \nodoc\ iso _RunnerErroringGeneratorTest is UnitTest
     runner.run()
 
 class \nodoc\ iso _SometimesErroringGeneratorProperty is Property1[String]
+
   fun name(): String => "property_runner/sometimes_erroring_generator"
+
   fun params(): PropertyParams =>
     PropertyParams(where
       num_samples' = 3,
       seed' = 6, // known seed to produce a value, an error and a value
-      max_generator_retries' = 1
+      max_generator_retries' = 1,
+      timeout' = _TestPropertyParams.timeout()
     )
   fun gen(): Generator[String] =>
     Generator[String](
@@ -982,6 +1026,7 @@ class \nodoc\ iso _RunnerSometimesErroringGeneratorTest is UnitTest
     runner.run()
 
 class \nodoc\ iso _ReportFailedSampleProperty is Property1[U8]
+  fun params(): PropertyParams => _TestPropertyParams()
   fun name(): String => "property_runner/sample_reporting/property"
   fun gen(): Generator[U8] => Generators.u8(0, 1)
   fun ref property(sample: U8, h: PropertyHelper) =>
@@ -1269,7 +1314,7 @@ class \nodoc\ iso _AsyncProperty is Property1[String]
   fun name(): String => "property_runner/async/property"
 
   fun params(): PropertyParams =>
-    PropertyParams(where async' = true)
+    _TestPropertyParams(where async = true)
 
   fun gen(): Generator[String] =>
     Generators.ascii_printable()
